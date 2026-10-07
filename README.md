@@ -102,8 +102,8 @@ Windows 版与 macOS 版**互不依赖**，各自独立运行；都只访问 Dee
 | --- | --- | --- | --- |
 | **v3** | [`大肥鱼桌宠改_D-16BVM`](大肥鱼桌宠改_D-16BVM) | **当前版本** | 表情差分 · 铁盆 · 多目标火控雷达 · PDF 说明书 |
 | v2 | [`大肥鱼桌宠改_D-16B`](大肥鱼桌宠改_D-16B) | 保留 | 拖拽惯性 · DSH 风格菜单第二版 |
-| v1 | [`大肥鱼桌宠初代_D-16A`](大肥鱼桌宠初代_D-16A) | 存档 | 初版（与下方「原版」内容相同） |
-| — | [`原版（Windows版）`](原版（Windows版）) | 上游存档 | 本项目的起点版本，含 zip 归档 |
+| v1 | [`大肥鱼桌宠初代_D-16A`](大肥鱼桌宠初代_D-16A) | 存档 | 初版（8 个源文件与下方「原版」目录相同，另多一份 README） |
+| — | [`原版（Windows版）`](原版（Windows版）) | 原版存档 | 本项目的起点版本；已经过社区改进（见下文），但其中的 `DSH余额桌宠.zip` 仍为最初发布的压缩包 |
 
 ### 旧版目录的社区修复
 
@@ -227,9 +227,7 @@ open "dist/DSH大肥鱼桌宠.app"
 - [角色素材来源与文件哈希](dsh-balance-pet-macos/Resources/README.md)
 - [Windows 原版存档](原版（Windows版）/DSH余额桌宠/先看这里（快速开始）.md)
 
-本项目基于 [VKmich16/V](https://github.com/VKmich16/V) 的 Windows 原版移植，感谢原作者。原版代码和素材完整保留在 `原版（Windows版）` 目录；缓存、编译产物及个人凭证不纳入版本控制。
-
-上游暂未附带许可证；本仓库保留来源说明，不对上游代码和素材另行授予许可。
+macOS 版基于本仓库中的 Windows 原版移植，感谢原作者。原版代码和素材完整保留在 `原版（Windows版）` 目录；缓存、编译产物及个人凭证不纳入版本控制。
 
 ---
 
@@ -253,9 +251,9 @@ open "dist/DSH大肥鱼桌宠.app"
 | --- | --- | --- |
 | 🪟 Windows 版（v1 → v3） | [@VKmich16](https://github.com/VKmich16) | 本仓库维护者 |
 | 🍎 macOS 版 | [@Andromedahk](https://github.com/Andromedahk) | 从 Windows 原版移植到 Swift + AppKit，独立维护 |
-| 🪟 Windows 旧版修复 | [@sa2360](https://github.com/sa2360) | DSH 账号凭证支持 · 音效改用绝对路径与返回码判断（[PR #2](https://github.com/VKmich16/VK-1/pull/2)）|
-| 🌐 DSH 网页插件版 | [@YCTS-otree](https://github.com/YCTS-otree) | 把 D-16BVM 移植成 DSH bundle，独立维护（[dsh-plugin 分支](https://github.com/YCTS-otree/VK-1/tree/dsh-plugin)）|
-| 上游 Windows 原版 | — | 见 `原版（Windows版）/` |
+| 🪟 Windows 旧版修复 | [@sa2360](https://github.com/sa2360) | DSH 账号凭证支持 · 音效改用绝对路径与返回码判断（[PR #2](https://github.com/VKmich16/VK-1/pull/2)） |
+| 🌐 DSH 网页插件版 | [@YCTS-otree](https://github.com/YCTS-otree) | 把 D-16BVM 移植成 DSH bundle，独立维护（[dsh-plugin 分支](https://github.com/YCTS-otree/VK-1/tree/dsh-plugin)） |
+| Windows 原版 | — | 见 `原版（Windows版）/` |
 
 ## 许可
 
@@ -271,9 +269,9 @@ open "dist/DSH大肥鱼桌宠.app"
 
 | 目录 | 说明 |
 | --- | --- |
-| `原版（Windows版）/` | 上游 Windows 原版，非本项目原创 |
-| `大肥鱼桌宠初代_D-16A/` | 内容与上游原版相同，仅作版本起点存档 |
+| `原版（Windows版）/` | 最初发布的 Windows 原版（已经过社区改进；zip 为最初发布的原样压缩包），非本项目原创 |
+| `大肥鱼桌宠初代_D-16A/` | 8 个源文件与 `原版（Windows版）/` 目录相同，另含一份说明 README，仅作版本起点存档 |
 | `dsh-balance-pet-macos/` | 由 [@Andromedahk](https://github.com/Andromedahk) 独立维护，许可以其[独立说明](dsh-balance-pet-macos/README.md)为准 |
-| `output/` | 同上，macOS 版的素材生成记录（提示词与输出图）|
+| `output/` | 同上，macOS 版的素材生成记录（提示词与输出图） |
 
 > 想把这里的素材用在自己的项目（包括移植到别的平台）：注明来源即可，无需另行询问。

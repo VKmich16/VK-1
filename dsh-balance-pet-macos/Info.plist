@@ -25,6 +25,6 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>macOS port of VKmich16/V. Adapted pet artwork and original audio with source attribution.</string>
+	<string>macOS port of the Windows original in this repository. Adapted pet artwork and original audio with source attribution.</string>
 </dict>
 </plist>

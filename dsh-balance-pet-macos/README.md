@@ -1,6 +1,6 @@
 # DSH大肥鱼桌宠 · macOS
 
-用于 DeepSeek Harness 的原生余额桌宠，基于 [VKmich16/V](https://github.com/VKmich16/V) 移植。1.3.1 支持四个内置角色：**蓝色大肥鱼、GPT龙娘、大小姐Claude、北美猫娘Gemini**，保留原版 `hit.mp3` 音效；余额在每个角色手持的倾斜平板内显示。
+用于 DeepSeek Harness 的原生余额桌宠，基于本仓库中的 Windows 原版移植。1.3.1 支持四个内置角色：**蓝色大肥鱼、GPT龙娘、大小姐Claude、北美猫娘Gemini**，保留原版 `hit.mp3` 音效；余额在每个角色手持的倾斜平板内显示。
 
 它是独立的 Swift + AppKit 应用，可读取 DSH 凭证；无需修改或持续运行 DSH。目前维护和支持 macOS 13+。
 
@@ -118,7 +118,7 @@ BIN='./dist/DSH大肥鱼桌宠.app/Contents/MacOS/DSHBalancePet'
 - `Resources/`：四张角色 PNG，以及从 Windows 原版逐字节复制的 `hit.mp3`。
 - `artwork/left-completion-v1/`：补全图片、参考、提示词与原始素材检查记录。
 
-上游原始代码及素材完整保存在仓库的 `原版（Windows版）`，来源见 [素材说明](Resources/README.md)。旧音效生成脚本保留供参考，默认构建不再使用。
+Windows 原版代码及素材完整保存在仓库的 `原版（Windows版）`，来源见 [素材说明](Resources/README.md)。旧音效生成脚本保留供参考，默认构建不再使用。
 
 本应用使用本地临时签名，未经过 Apple 开发者签名与公证。构建通过不等于所有 macOS/Intel 机型均已实测；离屏截图也不等于所有跨应用鼠标交互均已验证。
 
