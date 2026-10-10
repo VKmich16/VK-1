@@ -19,3 +19,12 @@ state.ini
 # and a full desktop grab, so they must never be committed.
 _shot*.png
 shot.png
+
+# Standalone web integration build outputs and private state
+community-reference
+releases/
+integration/*-test.png
+integration/*-test-report.json
+integration/__pycache__/
+node_modules/
+*-balance.json

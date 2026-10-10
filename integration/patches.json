@@ -1,0 +1,187 @@
+[
+  {
+    "id": "dash-runtime-config",
+    "old": "  var BASE = '/dsh-vk1'",
+    "new": "  var dashConfig = window.__vk1DashConfig || {}\n  var BASE = '/vk-1/assets'"
+  },
+  {
+    "id": "same-origin-balance",
+    "old": "  var BALANCE_URL = BASE + '/balance.json'",
+    "new": "  var BALANCE_URL = '/vk-1/api/balance'"
+  },
+  {
+    "id": "isolated-preferences",
+    "old": "  var POS_KEY = 'dsh-vk1-pos'\n  var SIZE_KEY = 'dsh-vk1-size'\n  var GAP_KEY = 'dsh-vk1-gap'\n  var SOUND_KEY = 'dsh-vk1-sound'",
+    "new": "  var POS_KEY = 'vk1-dash-v1-pos'\n  var SIZE_KEY = 'vk1-dash-v1-size'\n  var GAP_KEY = 'vk1-dash-v1-gap'\n  var SOUND_KEY = 'vk1-dash-v1-sound'"
+  },
+  {
+    "id": "style-csp-nonce",
+    "old": "  styleEl.textContent = CSS",
+    "new": "  if (dashConfig.nonce) styleEl.nonce = dashConfig.nonce\n  styleEl.textContent = CSS"
+  },
+  {
+    "id": "mirror-policy",
+    "old": "  function mirrored() { return state.h === 'right' }",
+    "new": "  function mirrored() { return dashConfig.mirror === 'auto' ? state.h === 'right' : dashConfig.mirror !== false }"
+  },
+  {
+    "id": "mirror-screen-head",
+    "old": "  function headScreen() { return { x: state.left + headXLocal(), y: state.top + headYLocal() } }",
+    "new": "  function headScreen() { return { x: state.left + (mirrored() ? state.size - headXLocal() : headXLocal()), y: state.top + headYLocal() } }"
+  },
+  {
+    "id": "screen-space-floaters-no-double-flip",
+    "old": "      if (mirrored()) fx = state.left + (state.size - (fx - state.left) - f.tw)\n",
+    "new": ""
+  },
+  {
+    "id": "mirror-pointer-alpha",
+    "old": "      var data = hitCanvas.getContext('2d').getImageData(Math.floor(lx), Math.floor(ly), 1, 1).data",
+    "new": "      if (mirrored()) lx = 609 - Math.floor(lx)\n      var data = hitCanvas.getContext('2d').getImageData(Math.floor(lx), Math.floor(ly), 1, 1).data"
+  },
+  {
+    "id": "strict-cny-balance",
+    "old": "        if (d && d.ok && isFinite(Number(d.totalBalance))) applyBalance(Number(d.totalBalance), !!snap)",
+    "new": "        if (d && d.ok && typeof d.totalBalance === 'number' && isFinite(d.totalBalance) && d.totalBalance >= 0 && (!d.currency || d.currency === 'CNY')) applyBalance(d.totalBalance, !!snap)"
+  },
+  {
+    "id": "same-origin-cookies",
+    "old": "    fetch(BALANCE_URL, { cache: 'no-store' })",
+    "new": "    fetch(BALANCE_URL, { cache: 'no-store', credentials: 'same-origin' })"
+  },
+  {
+    "id": "error-handler-name",
+    "old": "  window.addEventListener('error', function (ev) {",
+    "new": "  function onWidgetError(ev) {"
+  },
+  {
+    "id": "error-handler-register",
+    "old": "    showFatal(msg + '   @' + (ev && ev.lineno) + ':' + (ev && ev.colno))\n  })",
+    "new": "    showFatal(msg + '   @' + (ev && ev.lineno) + ':' + (ev && ev.colno))\n  }\n  window.addEventListener('error', onWidgetError)"
+  },
+  {
+    "id": "error-handler-prefix",
+    "old": "    return /dsh-vk1\\/widget\\.js$/.test(path)",
+    "new": "    return /vk-1\\/widget\\.js$/.test(path)"
+  },
+  {
+    "id": "safe-unmount",
+    "old": "    window.removeEventListener('resize', onResize)",
+    "new": "    window.removeEventListener('resize', onResize)\n    window.removeEventListener('error', onWidgetError)\n    ;[hitPool, feedPool].forEach(function (p) { p.pool.forEach(function (a) { try { a.pause(); a.removeAttribute('src'); a.load() } catch (err) {} }) })\n    detach(document.getElementById('dshvk1-fatal'))"
+  },
+  {
+    "id": "responsive-default-size",
+    "old": "  var DEFAULT_SIZE = 454",
+    "new": "  var DEFAULT_SIZE = Math.min(256, window.innerWidth <= 600 ? 192 : 256)"
+  },
+  {
+    "id": "touch-shape-css",
+    "old": "  ].join('\\n')",
+    "new": "    '.vk1-hit-shape{position:absolute;inset:0;width:100%;height:100%;touch-action:none;overflow:visible}',\n    '.vk1-hit-shape path{pointer-events:fill;cursor:grab}',\n    '.dshvk1-mirror .vk1-hit-shape{transform:scaleX(-1)}',\n    '.dshvk1-bowl{pointer-events:auto;touch-action:none;-webkit-user-drag:none}',\n    '@media(pointer:coarse){.dshvk1-menu-row{min-height:40px;font-size:14px}.dshvk1-menu-chip{min-height:36px;padding:5px 10px}.dshvk1-btn{width:36px;height:36px}}',\n  ].join('\\n')"
+  },
+  {
+    "id": "touch-alpha-hit-surface",
+    "old": "  root.appendChild(body)",
+    "new": "  root.appendChild(body)\n  var hitSvg = svgEl('svg')\n  hitSvg.setAttribute('viewBox', '0 0 610 610')\n  hitSvg.setAttribute('class', 'vk1-hit-shape')\n  hitSvg.setAttribute('aria-label', 'VK-1：拖动、右键或长按打开菜单')\n  var hitPath = svgEl('path')\n  hitPath.setAttribute('fill', 'transparent')\n  hitSvg.appendChild(hitPath)\n  root.appendChild(hitSvg)"
+  },
+  {
+    "id": "refresh-alpha-surface",
+    "old": "          hitCanvas.getContext('2d').drawImage(probe, 0, 0, 610, 610)\n          hitReady = true",
+    "new": "          var ctx = hitCanvas.getContext('2d')\n          ctx.clearRect(0, 0, 610, 610)\n          ctx.drawImage(probe, 0, 0, 610, 610)\n          hitReady = true\n          var pixels = ctx.getImageData(0, 0, 610, 610).data\n          var shape = []\n          for (var y = 0; y < 610; y++) {\n            var start = -1\n            for (var x = 0; x <= 610; x++) {\n              var solid = x < 610 && pixels[(y * 610 + x) * 4 + 3] > 10\n              if (solid && start < 0) start = x\n              if (!solid && start >= 0) { shape.push('M' + start + ',' + y + 'h' + (x-start) + 'v1h-' + (x-start) + 'z'); start = -1 }\n            }\n          }\n          hitPath.setAttribute('d', shape.join(''))"
+  },
+  {
+    "id": "persistent-anchor-offsets",
+    "old": "      state.h = a.hAnchor; state.hOff = 0\n      state.v = a.vAnchor; state.vOff = 0",
+    "new": "      state.h = a.hAnchor\n      state.hOff = a.hAnchor === 'left' ? state.left : Math.max(0, vp.w - state.size - state.left - rightGap())\n      state.v = a.vAnchor\n      state.vOff = a.vAnchor === 'top' ? state.top : Math.max(0, vp.h - state.size - state.top)"
+  },
+  {
+    "id": "long-press-functions",
+    "old": "  function addDragListeners() {",
+    "new": "  var longPressTimer = null\n  var longPressClick = null\n  function onLongPressClick(e) {\n    if (!longPressClick) return\n    var press = longPressClick\n    longPressClick = null\n    if (Date.now() - press.t < 2000 && Math.abs(e.clientX - press.x) < 32 && Math.abs(e.clientY - press.y) < 32) {\n      e.preventDefault(); e.stopImmediatePropagation()\n    }\n  }\n  document.addEventListener('click', onLongPressClick, true)\n  function cancelLongPress() { if (longPressTimer !== null) { clearTimeout(longPressTimer); longPressTimer = null } }\n  function armLongPress(e) {\n    if (e.pointerType === 'mouse') return\n    cancelLongPress()\n    var x = e.clientX, y = e.clientY\n    longPressTimer = setTimeout(function () {\n      longPressTimer = null\n      if (!state.dragWidget || state.dragWidget.moved) return\n      state.dragWidget = null\n      root.classList.remove('dshvk1-dragging')\n      removeDragListeners()\n      longPressClick = { x: x, y: y, t: Date.now() }\n      openMenu(x, y)\n    }, 550)\n  }\n  function addDragListeners() {"
+  },
+  {
+    "id": "skip-menu-buttons",
+    "old": "    if (e.target && e.target.closest && e.target.closest('.dshvk1-menu')) return",
+    "new": "    if (e.target && e.target.closest && (e.target.closest('.dshvk1-menu') || e.target.closest('.dshvk1-btn'))) return"
+  },
+  {
+    "id": "bowl-pointer-id",
+    "old": "state.grab = { bowl: bowl, dx:",
+    "new": "state.grab = { pointerId: e.pointerId, bowl: bowl, dx:"
+  },
+  {
+    "id": "character-pointer-id",
+    "old": "    state.dragWidget = { x: e.clientX, y: e.clientY, left: state.left, top: state.top, moved: false }",
+    "new": "    state.dragWidget = { pointerId: e.pointerId, touch: e.pointerType !== 'mouse', x: e.clientX, y: e.clientY, left: state.left, top: state.top, moved: false }\n    armLongPress(e)"
+  },
+  {
+    "id": "gesture-pointer-move",
+    "old": "  function onMove(e) {\n    var g = state.grab",
+    "new": "  function onMove(e) {\n    var active = state.grab || state.dragWidget\n    if (active && active.pointerId !== e.pointerId) return\n    if (active && e.cancelable) e.preventDefault()\n    var g = state.grab"
+  },
+  {
+    "id": "cancel-hold-on-drag",
+    "old": "    if (dx * dx + dy * dy >= 9) d.moved = true",
+    "new": "    if (dx * dx + dy * dy >= (d.touch ? 64 : 9)) { d.moved = true; cancelLongPress() }\n    if (d.touch && !d.moved) return"
+  },
+  {
+    "id": "gesture-pointer-up",
+    "old": "  function onUp(e) {\n    var g = state.grab",
+    "new": "  function onUp(e) {\n    var active = state.grab || state.dragWidget\n    if (active && active.pointerId !== e.pointerId) return\n    cancelLongPress()\n    if (e.type === 'pointercancel') {\n      if (state.grab) state.grab.bowl.dragging = false\n      state.grab = null; state.dragWidget = null\n      root.classList.remove('dshvk1-dragging'); removeDragListeners(); saveAnchor(); return\n    }\n    var g = state.grab"
+  },
+  {
+    "id": "size-clamp-viewport",
+    "old": "    state.size = clamp(Math.round(v) || DEFAULT_SIZE, MIN_SIZE, MAX_SIZE)",
+    "new": "    state.size = clamp(Math.round(v) || DEFAULT_SIZE, MIN_SIZE, Math.min(MAX_SIZE, viewport().w, viewport().h))"
+  },
+  {
+    "id": "startup-size-clamp",
+    "old": "  layout()\n  if (!applyAnchorPos())",
+    "new": "  state.size = Math.min(state.size, viewport().w, viewport().h)\n  layout()\n  if (!applyAnchorPos())"
+  },
+  {
+    "id": "resize-clamp",
+    "old": "  function onResize() {\n    if (state.h === null",
+    "new": "  function onResize() {\n    state.size = Math.min(state.size, viewport().w, viewport().h)\n    if (state.h === null"
+  },
+  {
+    "id": "longpress-cleanup",
+    "old": "    stopped = true",
+    "new": "    stopped = true\n    cancelLongPress()"
+  },
+  {
+    "id": "balance-menu",
+    "old": "    menuRow('立即刷新余额', function () { poll(true) })",
+    "new": "    menuRow('立即刷新余额', function () { poll(true) })\n    menuRow('连接 DeepSeek 余额…', function () { if (window.VK1Dash) window.VK1Dash.connectBalance() })\n    menuRow('断开余额连接', function () { if (window.VK1Dash) window.VK1Dash.disconnectBalance() })"
+  },
+  {
+    "id": "reset-position-menu",
+    "old": "    menuCap('位置')",
+    "new": "    menuCap('位置')\n    menuRow('回到右下角', function () { state.h = 'right'; state.v = 'bottom'; state.hOff = 0; state.vOff = 0; settle(); saveAnchor() })"
+  },
+  {
+    "id": "restore-native-expression-priority",
+    "old": "    if (cueRunning) { want = 'nervous'; state.nervousT = NERVOUS_HOLD }\n    else if (state.nervousT > 0) want = 'nervous'\n    else if (headPotOn && !anyBowl) want = 'calm'",
+    "new": "    if (headPotOn && !anyBowl) want = 'calm'\n    else if (cueRunning) { want = 'nervous'; state.nervousT = NERVOUS_HOLD }\n    else if (state.nervousT > 0) want = 'nervous'"
+  },
+  {
+    "id": "longpress-click-reset",
+    "old": "  function onDown(e) {\n    if (state.menuOpen) return",
+    "new": "  function onDown(e) {\n    longPressClick = null\n    if (state.menuOpen) return"
+  },
+  {
+    "id": "longpress-click-cleanup",
+    "old": "    cancelLongPress()\n    try { cancelAnimationFrame(rafId)",
+    "new": "    cancelLongPress()\n    document.removeEventListener('click', onLongPressClick, true)\n    try { cancelAnimationFrame(rafId)"
+  },
+  {
+    "id": "capture-drag-across-iframe",
+    "old": "  function addDragListeners() {\n    document.addEventListener('pointermove', onMove, true)",
+    "new": "  var capturedDragPointer = null\n  function addDragListeners() {\n    stage.style.pointerEvents = 'auto'\n    var active = state.grab || state.dragWidget\n    if (active) {\n      try { hitSvg.setPointerCapture(active.pointerId); capturedDragPointer = active.pointerId } catch (err) {}\n    }\n    document.addEventListener('pointermove', onMove, true)"
+  },
+  {
+    "id": "release-iframe-drag-capture",
+    "old": "  function removeDragListeners() {\n    document.removeEventListener('pointermove', onMove, true)",
+    "new": "  function removeDragListeners() {\n    stage.style.pointerEvents = 'none'\n    if (capturedDragPointer !== null) {\n      try { if (hitSvg.hasPointerCapture(capturedDragPointer)) hitSvg.releasePointerCapture(capturedDragPointer) } catch (err) {}\n      capturedDragPointer = null\n    }\n    document.removeEventListener('pointermove', onMove, true)"
+  }
+]
