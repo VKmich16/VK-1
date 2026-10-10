@@ -5,15 +5,34 @@
 余额每**下降 0.01 元**，她红闪 + 震动 + 播放打击音效，头顶飘出 `-0.01`，0.2 秒一次串成一条；
 余额**上升（充值）**时，屏幕右侧掉下一盆米饭，把它拖到角色身上才一次性入账。
 
-本仓库有**两个自研实现**（Windows / macOS），另有一个**社区维护的 DSH 网页插件版**，按你的环境选：
+本仓库有**两个自研实现**（Windows / macOS），另有**社区维护的 DSH 网页插件版**和**独立网页嵌入版**，按你的环境选：
 
 | 平台 | 当前版本 | 技术栈 | 说明 |
 | --- | --- | --- | --- |
 | 🪟 **Windows** | **v3**（`大肥鱼桌宠改_D-16BVM`） | PowerShell 5.1 + 内嵌 C# | 见下文「Windows 版」 |
 | 🍎 **macOS** | **v1.3.1** | Swift + AppKit | 见下文「macOS 版」 |
 | 🌐 **DSH 网页插件** | 社区维护 | DSH bundle（JS） | 由 [@YCTS-otree](https://github.com/YCTS-otree) 移植并维护，见 [dsh-plugin 分支](https://github.com/YCTS-otree/VK-1) |
+| 🌐 **独立网页嵌入** | **v0.1.1** | 普通网页 JS + 可选 Python 余额服务 | 不依赖 DSH，可放进自己的网页，见下文「网页嵌入」 |
 
 Windows 版与 macOS 版**互不依赖**，各自独立运行；都只访问 DeepSeek 官方接口，不联网上传任何数据。网页插件版是第三方移植，见下。
+
+---
+
+## 🌐 网页嵌入
+
+这玩意也可以放进你自己的网页里：个人首页、导航页、监控面板都能用，不需要安装 DSH。角色默认待在网页右下角，保留喂饭、铁盆、火控雷达和扣费/充值动画；支持鼠标拖动、手机触屏拖动，电脑右键或手机长按打开菜单。
+
+![VK-1 嵌入网页监控面板的效果](integration/docs/web-embed-preview.png)
+
+将构建产物部署到网站的 `/vk-1/`，再给页面加一行：
+
+```html
+<script defer src="/vk-1/loader.js"></script>
+```
+
+这是**网页内挂件**，不会跨应用浮在系统桌面上。透明区域不会挡住网页点击，拖动位置会记住。
+
+需要显示真实余额时，可搭配同源余额服务；API Key 不写进网页脚本或 localStorage。构建、部署和测试方法见 [网页嵌入说明](integration/README.md)。该实现基于 [@YCTS-otree 的 MIT 社区网页版](https://github.com/YCTS-otree/VK-1)，独立放在 `integration/`，不修改 Windows/macOS 实现。
 
 ---
 
