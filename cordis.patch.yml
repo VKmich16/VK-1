@@ -1,0 +1,12 @@
+# dsh-vk1-balance-pet 的 bundle 补丁层：向 Loader 插入宿主侧插件入口。
+#
+# 入口写成「锚定在本 patch 文件旁的相对路径」，而不是包名：
+# Loader 按模块 URL 缓存宿主模块，link: 安装的包名入口在 bundle 停/启后会命中旧模块。
+# 换一个从未被 import 过的文件名即可在 DSH 运行中热更新宿主代码，无需重启。
+# 因此 lib/index.js 是本插件唯一的宿主入口（package.json 的 main / exports 也指向它）。
+#
+# 下次改宿主代码：新增 lib/index-v2.js，把下面 name 改成 ./lib/index-v2.js，
+# 同步 package.json 的 main / exports，然后重启 DSH 即可加载新模块。
+- insert:
+    - id: dsh-vk1-balance-pet
+      name: ./lib/index.js
