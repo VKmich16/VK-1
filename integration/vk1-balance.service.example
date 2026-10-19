@@ -1,0 +1,26 @@
+[Unit]
+Description=VK-1 dashboard balance bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Replace with your dedicated service account.
+User=vk1
+Group=vk1
+ExecStart=/usr/bin/python3 /opt/vk1-dash/integration/balance-server.py --port 18911
+Environment=VK1_ALLOWED_ORIGINS=https://dash.example.test
+# Optional sanitized snapshot, not a key file:
+# Environment=VK1_BALANCE_FILE=/var/lib/vk1-balance/default-balance.json
+StateDirectory=vk1-balance
+StateDirectoryMode=0700
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+[Install]
+WantedBy=multi-user.target

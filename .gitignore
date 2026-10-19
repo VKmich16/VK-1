@@ -1,0 +1,30 @@
+.DS_Store
+**/build/
+**/dist/
+**/.build/
+**/ModuleCache/
+**/__pycache__/
+*.log
+apikey.txt
+.env
+.env.*
+state.json
+status.json
+state.ini
+.credentials.yaml
+*.pem
+*.key
+*.lock
+# Diagnostic captures written by dsh_pet.ps1 --shot: they show the real balance
+# and a full desktop grab, so they must never be committed.
+_shot*.png
+shot.png
+
+# Standalone web integration build outputs and private state
+community-reference
+releases/
+integration/*-test.png
+integration/*-test-report.json
+integration/__pycache__/
+node_modules/
+*-balance.json

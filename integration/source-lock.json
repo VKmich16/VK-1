@@ -1,0 +1,22 @@
+{
+  "repository": "https://github.com/YCTS-otree/VK-1",
+  "commit": "696e8915e37ed3c12d35feff9bcd7702d1be6247",
+  "version": "1.0.2",
+  "sha256": {
+    "tools/verify.mjs": "a06badb85cd9f68ed68644147082f36832b688448f1177050219a18f8468b3cd",
+    "dsh-plugin/package.json": "c4f6268cb68eb0af0443781e03656a778d15efb77c9d38157f4f34969dfa06c8",
+    "dsh-plugin/cordis.patch.yml": "d2642f504c05b1b074f1343b2793a7e1fe0f788e0f630eaa544623480556b613",
+    "dsh-plugin/index-v11.js": "06e181f396e306d679ff355ba2299569f3dde690f43a120ff37e1f011eb2461e",
+    "dsh-plugin/widget.js": "9084641dfb8b752180a4f7e5ca4cee475589929975d22ce3b80a171a006cf0a2",
+    "dsh-plugin/LICENSE": "3b5af361fc1946ca8e815542acae285778aaf86114313fe21e3fe578ac0516c2",
+    "dsh-plugin/README.md": "3a5c5bf807754e10f78301dbe91e2de329424dfc4a7cc64f7649bd4a9c95d5bf",
+    "dsh-plugin/assets/expression_11.png": "974b567a142adaaa5682fa39ddb746f1bad67cd3e16ef2c5797d44ce8bb5b3f3",
+    "dsh-plugin/assets/expression_12.png": "6ac5cf2c8a774b271a0a9980dd75f8354f15da01b2591cd3fa3f308d6eee2e45",
+    "dsh-plugin/assets/expression_21.png": "ece78bef3c4ba2d23382522102c0214a7dafa35482d5f31204c638fd8dfccffc",
+    "dsh-plugin/assets/expression_22.png": "ce5ac43bc5c27dedeffb449f40a3db1bdd383613bd93ce8025f4ee815ff36b41",
+    "dsh-plugin/assets/feed.mp3": "c44abec2ab2ab3165e68add62e577d02f5011e139a00c7ee1e84370311835903",
+    "dsh-plugin/assets/hit.mp3": "43fa877b537d8cbfbd676d76109b9a960551bfeae06c62e2d1a7d64d3994cb29",
+    "dsh-plugin/assets/iron_bowl.png": "c659031066afd2d3c7c06165a70fdb9e053de590387198f40d8b172958c88c0d",
+    "dsh-plugin/assets/rice.png": "b81d4e923e535d3107a936fa56714cf22170492a76a08d8fa904cbc1533cb23b"
+  }
+}

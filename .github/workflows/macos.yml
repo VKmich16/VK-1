@@ -1,0 +1,29 @@
+name: macOS build and offline verification
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Apple Silicon and Intel universal app
+        working-directory: dsh-balance-pet-macos
+        run: ARCH=universal ./build.sh
+      - name: Run offline regression tests and render previews
+        working-directory: dsh-balance-pet-macos
+        run: ./verify.sh
+      - name: Package application
+        working-directory: dsh-balance-pet-macos
+        run: ditto -c -k --keepParent 'dist/DSH大肥鱼桌宠.app' 'dist/DSH-DaFeiYu-macOS.zip'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DSH-DaFeiYu-macOS
+          path: |
+            dsh-balance-pet-macos/dist/DSH-DaFeiYu-macOS.zip
+            dsh-balance-pet-macos/build/verification/snapshots/

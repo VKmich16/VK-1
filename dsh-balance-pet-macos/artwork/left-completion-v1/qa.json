@@ -1,0 +1,25 @@
+{
+  "file": "sprite-left-completed.png",
+  "width": 1536,
+  "height": 1024,
+  "mode": "RGBA",
+  "has_real_alpha": true,
+  "transparent_pixels": 618712,
+  "opaque_or_nearly_opaque_pixels": 915567,
+  "alpha_extrema": [
+    0,
+    254
+  ],
+  "sha256": "a98329d36dd9169a1856f3a396bc9e602ed1a739bd3097eead1b744c6bb3dd71",
+  "edit_tool": "built-in image_gen",
+  "scope": "left-side hair and raised whale tail completion; preserve lower crop",
+  "source_sprite_sha256": "5bc1d8f1f347c430dd662ad8ff3da8d0dff3df9f290712efe36d004b7b103e69",
+  "visual_checks": {
+    "left_hair_completed": true,
+    "raised_whale_tail_completed": true,
+    "lower_body_still_cropped": true,
+    "white_and_dark_background_review": "passed",
+    "minor_generative_redraw_in_original_area": true,
+    "application_integration": "candidate asset only; original Resources/sprite.png preserved"
+  }
+}
