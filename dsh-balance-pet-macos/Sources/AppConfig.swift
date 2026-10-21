@@ -331,6 +331,12 @@ struct PetState {
     var soundOn: Bool = true
     var pollSeconds: Double = 30
     var windowOrigin: CGPoint?
+    /// Drop a rice bowl on every balance increase (Windows v3 "fxbowl").
+    var patEnabled = true
+    var mirrored = false
+    var cueVolumes = [0.8, 0.8, 0.8, 0.8]
+    var hurtEffects = true
+    var bowlOnCredit: Bool = true
 
     static func load(from url: URL = PetPaths.stateURL) -> PetState {
         var s = PetState()
@@ -342,6 +348,13 @@ struct PetState {
         if let v = obj["sizeIndex"] as? Int, (0...3).contains(v) { s.sizeIndex = v }
         if let v = obj["snapOnRelease"] as? Bool { s.snapOnRelease = v }
         if let v = obj["soundOn"] as? Bool { s.soundOn = v }
+        if let v = obj["patEnabled"] as? Bool { s.patEnabled = v }
+        if let v = obj["mirrored"] as? Bool { s.mirrored = v }
+        if let v = obj["cueVolumes"] as? [Double], v.count == 4, v.allSatisfy({ $0.isFinite }) {
+            s.cueVolumes = v.map { min(1, max(0, $0)) }
+        }
+        if let v = obj["hurtEffects"] as? Bool { s.hurtEffects = v }
+        if let v = obj["bowlOnCredit"] as? Bool { s.bowlOnCredit = v }
         if let v = obj["pollSeconds"] as? Double, v.isFinite { s.pollSeconds = min(300, max(10, v)) }
         if let x = obj["originX"] as? Double, let y = obj["originY"] as? Double, x.isFinite, y.isFinite {
             s.windowOrigin = CGPoint(x: x, y: y)
@@ -355,6 +368,11 @@ struct PetState {
             "sizeIndex": min(3, max(0, sizeIndex)),
             "snapOnRelease": snapOnRelease,
             "soundOn": soundOn,
+            "bowlOnCredit": bowlOnCredit,
+            "hurtEffects": hurtEffects,
+            "patEnabled": patEnabled,
+            "mirrored": mirrored,
+            "cueVolumes": cueVolumes,
             "pollSeconds": pollSeconds.isFinite ? min(300, max(10, pollSeconds)) : 30,
         ]
         if let o = windowOrigin, o.x.isFinite, o.y.isFinite {

@@ -190,8 +190,8 @@ enum ModelSelfTests {
         repeated.onHit = { repeatedHits += 1 }
         repeated.playDemo(times: Int.max)
         repeated.playDemo(times: Int.max)
-        advance(repeated, frames: 3000)
-        expect(repeatedHits == 200 && repeated.displayedCents == 1000 && !repeated.needsAnimationFrame,
+        advance(repeated, frames: 7200)
+        expect(repeatedHits == 500 && repeated.displayedCents == 1000 && !repeated.needsAnimationFrame,
                "repeated large demo requests share a bounded queue and settle cleanly")
     }
 }

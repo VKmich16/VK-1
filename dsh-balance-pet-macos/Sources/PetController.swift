@@ -1,4 +1,5 @@
 import AppKit
+import UniformTypeIdentifiers
 
 final class ActionBox: NSObject {
     private let handler: () -> Void
@@ -9,12 +10,21 @@ final class ActionBox: NSObject {
 final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     let model = PetModel()
-    private var view: PetView!
+    let usage = UsageMeter()
+    private var tariffMode = false
+    var view: PetView!
     private var window: PetWindow!
     private var statusItem: NSStatusItem?
-    private var state = PetState.load()
+    private var state: PetState
+    init(state: PetState = PetState.load(), visible: Bool = true, window: PetWindow? = nil) { self.state = state; self.props = PropSystem(visible: visible); self.window = window; super.init() }
     private var credential: Credential?
 
+    /// Recharge bowls, iron pots and the radar overlay (Windows v3 features).
+    let props: PropSystem
+    private let sounds = SoundBank()
+
+    private var snapMotion: SnapMotion?
+    private var idleForSnap = 0.0
     private var tickTimer: Timer?
     private var lastFrame: CFTimeInterval = CACurrentMediaTime()
     private var schedule = PollSchedule(interval: 30)
@@ -26,14 +36,12 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var popupBoxes: [ActionBox] = []
     private var isMenuTracking = false
 
-    private var soundPlayers: [NSSound] = []
-    private var soundIndex = 0
 
     static let sizePresets: [(title: String, side: CGFloat)] = [
         ("小", 110), ("中", 150), ("大", 210), ("特大", 280),
     ]
 
-    private var side: CGFloat {
+    var side: CGFloat {
         let i = min(max(state.sizeIndex, 0), Self.sizePresets.count - 1)
         return Self.sizePresets[i].side
     }
@@ -43,6 +51,7 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
+        ScreenSpace.refresh()
         credential = CredentialStore.resolve()
         schedule = PollSchedule(interval: state.pollSeconds)
 
@@ -51,6 +60,7 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         view = PetView(model: model, character: state.character)
         view.controller = self
+        view.mirrored = state.mirrored
 
         let content = NSRect(origin: .zero, size: PetLayout.windowSize(side: side))
         window = PetWindow(contentRect: content,
@@ -69,6 +79,9 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         model.setCredentialSource(credentialSourceLabel())
         model.onHit = { [weak self] in self?.playHit() }
+        model.suppressCreditFlourish = state.bowlOnCredit
+        model.hurtEffects = state.hurtEffects
+        setUpProps()
 
         placeWindow()
         window.orderFrontRegardless()
@@ -101,6 +114,7 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         tickTimer?.invalidate()
+        props.removeAll()
         if let observer = wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(observer) }
         if let observer = screenObserver { NotificationCenter.default.removeObserver(observer) }
         state.windowOrigin = window?.frame.origin
@@ -111,6 +125,7 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Window placement
 
     private func placeWindow() {
+        if state.snapOnRelease { snapToCorner(animated: false, on: NSScreen.screens.first); return }
         let size = window.frame.size
         if let origin = state.windowOrigin, isOnScreen(origin: origin, size: size) {
             window.setFrameOrigin(origin)
@@ -128,6 +143,8 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func keepWindowVisible() {
         guard let window = window else { return }
+        props.screenDidChange()
+        if state.snapOnRelease { snapToCorner(animated: false); state.save(); return }
         if !isOnScreen(origin: window.frame.origin, size: window.frame.size) {
             snapToCorner(animated: false)
             state.save()
@@ -136,20 +153,49 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Snap to the bottom-left corner. `on` defaults to the screen the pet is
     /// currently sitting on, so dragging it to another display keeps it there.
+    func homeOrigin(on screen: NSScreen? = nil) -> CGPoint? {
+        guard let target = screen ?? window?.screen ?? NSScreen.main, let view = view else { return nil }
+        let vf = target.visibleFrame, foot = view.solidBounds
+        let x = state.mirrored ? vf.maxX-foot.maxX : vf.minX-foot.minX
+        // NSWindow rounds frame origins to integral logical points. Store that same target.
+        return CGPoint(x: x.rounded(.down), y: (vf.minY-foot.minY).rounded(.up))
+    }
+
     func snapToCorner(animated: Bool, on screen: NSScreen? = nil) {
-        guard let target = screen ?? window.screen ?? NSScreen.main else { return }
-        let vf = target.visibleFrame
-        let origin = NSPoint(x: vf.minX + 14, y: vf.minY + 14)
+        guard let window = window, let origin = homeOrigin(on: screen) else { return }
+        idleForSnap = 0
         if animated {
-            NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.16
-                ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
-                window.animator().setFrameOrigin(origin)
-            }
+            snapMotion = SnapMotion(from: window.frame.origin, to: origin)
         } else {
+            snapMotion = nil
             window.setFrameOrigin(origin)
         }
         state.windowOrigin = origin
+    }
+
+    func returnToLeftCorner() {
+        state.mirrored = false
+        view.mirrored = false
+        view.needsDisplay = true
+        props.resizeProps()
+        snapToCorner(animated: true)
+        state.save()
+    }
+
+    /// Runs from the same main-loop tick as the pet, including while menus close.
+    func updateWindowMotion(_ dt: Double, buttonDown: Bool) {
+        guard let window = window, let view = view, dt.isFinite, dt >= 0 else { return }
+        if view.isDragging { snapMotion = nil; idleForSnap = 0; return }
+        if var motion = snapMotion {
+            window.setFrameOrigin(motion.advance(dt))
+            snapMotion = motion.finished ? nil : motion
+            if motion.finished { state.windowOrigin = window.frame.origin; state.save() }
+            return
+        }
+        guard state.snapOnRelease, !buttonDown, !isMenuTracking, let home = homeOrigin() else { idleForSnap = 0; return }
+        if hypot(home.x-window.frame.minX, home.y-window.frame.minY) <= 1 { idleForSnap = 0; return }
+        idleForSnap += min(dt, 0.1)
+        if idleForSnap >= 0.2 { snapToCorner(animated: true) }
     }
 
     func dragDidEnd() {
@@ -158,13 +204,38 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         state.save()
     }
 
+    func updateHatSpace() {
+        guard let window = window else { return }
+        let base = PetLayout.windowSize(side: side)
+        let h = max(base.height, props.requiredHeadHeight)
+        if abs(window.frame.height-h) > 0.5 {
+            window.setFrame(CGRect(origin: window.frame.origin, size: CGSize(width: base.width, height: h)), display: true)
+        }
+    }
+
     // MARK: - Tick
 
+    /// Face priority ported from the Windows build: zero balance pouts, a charge
+    /// being played squeezes the eyes shut, otherwise she smiles. The iron-pot
+    /// cases arrive with the prop system.
+    private func currentExpression() -> PetExpression {
+        // Priority ported from the Windows build. The iron pot outranks a charge
+        // only while no unclaimed bowl is on screen.
+        if view.pat.active { return .nervous }
+        if model.broke { return .aloof }
+        if props.hasPotOnHead && !props.hasBowls { return .calm }
+        if model.cueRunning { return .nervous }
+        if props.waitingSeconds >= PetPropRules.bowlLockSeconds { return .aloof }
+        return .happy
+    }
+
     private func startTick() {
+        // One 30 Hz main-loop timer drives motion, accounting, props, and head pats.
         let t = Timer(timeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in self?.frameTick() }
         t.tolerance = 0.005
         RunLoop.main.add(t, forMode: .common)
         tickTimer = t
+
     }
 
     private func frameTick() {
@@ -172,8 +243,19 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let dt = min(0.1, now - lastFrame)
         lastFrame = now
 
+        updateWindowMotion(dt, buttonDown: NSEvent.pressedMouseButtons != 0)
         let wasAnimating = model.needsAnimationFrame
+        model.blockDeductions = props.hasBowls
         model.tick(dt)
+        props.isMenuTracking = isMenuTracking
+        props.tick(dt, cursor: ScreenSpace.down(NSEvent.mouseLocation))
+        let cursor = ScreenSpace.down(NSEvent.mouseLocation)
+        let wasPatting = view.pat.active
+        view.pat.tick(dt, point: cursor, onPet: petSolid(at: cursor), button: NSEvent.pressedMouseButtons != 0 || isMenuTracking,
+                      movingPet: view.isDragging || snapMotion != nil, enabled: state.patEnabled && PetAssets.patHands.count == 5,
+                      hasPot: props.hasPotOnHead, knock: { [weak self] in self?.props.knockPotOff() })
+        if wasPatting || view.pat.active { view.needsDisplay = true }
+        view.setExpression(currentExpression())
         if wasAnimating || model.needsAnimationFrame { view.needsDisplay = true }
 
         // NSView.hitTest alone cannot pass an event through an entire window.
@@ -192,6 +274,9 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusAccum += dt
         if statusAccum >= 1.0 {
             statusAccum = 0
+            let oldAreas = ScreenSpace.workAreas
+            ScreenSpace.refresh()
+            if oldAreas != ScreenSpace.workAreas { keepWindowVisible() }
             writeStatus()
         }
     }
@@ -202,6 +287,9 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let f = window.frame
         let obj: [String: Any] = [
             "running": running,
+            "version": "1.4.3",
+            "props": props.props.count,
+            "headPots": props.props.filter { $0.onHead }.count,
             "pid": Int(ProcessInfo.processInfo.processIdentifier),
             "character": view.character.rawValue,
             "characterName": view.character.displayName,
@@ -253,10 +341,18 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 switch outcome {
                 case .success(let reading):
                     let wasDisconnected = !self.model.connected
+                    if let cents = reading.totalCents { self.usage.observe(cents: cents) }
+                    self.updateTariff()
+                    let previousHeld = self.model.heldCreditCents
+                    if snap || wasDisconnected { self.props.removeAll() }
                     if snap || wasDisconnected {
                         self.model.apply(reading: reading, snap: true)
                     } else {
                         self.model.apply(reading: reading, snap: false)
+                    }
+                    if !snap, !wasDisconnected, self.state.bowlOnCredit,
+                       self.model.heldCreditCents > previousHeld {
+                        self.props.spawnRice(cents: self.model.heldCreditCents - previousHeld)
                     }
                     Log.write(String(format: "poll ok: CNY %.4f (normal %.4f + bonus %.4f)",
                                      reading.totalCny, reading.normalCny, reading.bonusCny))
@@ -278,31 +374,90 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         credential?.shortDescription
     }
 
-    // MARK: - Sound
+    // MARK: - Recharge props
 
-    private func playHit() {
-        guard state.soundOn, let url = PetPaths.soundURL else { return }
-        // All players and indexes are owned by the main thread.
-        if soundPlayers.isEmpty {
-            for _ in 0..<4 {
-                if let s = NSSound(contentsOf: url, byReference: true) {
-                    s.volume = 0.7
-                    soundPlayers.append(s)
+    private func setUpProps() {
+        props.controller = self
+        props.petBounds = { [weak self] in self?.view?.spriteRectScreenDown ?? .zero }
+        props.petRef = { [weak self] in self?.petPoint(0.7622, 0.3484) ?? .zero }
+        props.headRim = { [weak self] in self?.petPoint(PetPropRules.headXFraction, PetPropRules.headRimFraction) ?? .zero }
+        props.knockCentre = { [weak self] in self?.petPoint(PetPropRules.headXFraction, 0.35) ?? .zero }
+        props.artHeight = { [weak self] in self?.view?.spriteRectScreenDown.height ?? 150 }
+        props.petSolid = { [weak self] in self?.petSolid(at: $0) ?? false }
+        props.onFeed = { [weak self] amount, test in self?.handleFeed(amount: amount, test: test) }
+        props.onSound = { [weak self] in self?.sounds.play($0) }
+        sounds.volumes = state.cueVolumes.map { Float($0) }
+        sounds.enabled = state.soundOn
+        sounds.preload()
+
+        // Diagnostics: verify the alpha mask orientation and exercise the prop
+        // system without a mouse. DSHPET_SPAWN_BOWL=1 drops a test bowl.
+        Log.write("alpha probe: y85=\(petSolid(at: petPoint(0.5, 0.85))) y15=\(petSolid(at: petPoint(0.5, 0.15)))")
+        if ProcessInfo.processInfo.environment["DSHPET_SPAWN_BOWL"] == "1" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.props.spawnRice(amount: 3.0, test: true)
+            }
+        }
+        if let hits = ProcessInfo.processInfo.environment["DSHPET_TEST_HIT"], let n = Int(hits), n > 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.model.playDemo(times: n)
+            }
+        }
+        if ProcessInfo.processInfo.environment["DSHPET_TEST_POT"] == "1" {
+            // Drop an iron pot above her head, then knock it off with a synthetic
+            // double click: exercises seating, stacking and removal without a mouse.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                guard let self = self else { return }
+                self.props.spawnIronAboveHead()
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                guard let self = self else { return }
+                Log.write("pot test: onHead=\(self.props.hasPotOnHead)")
+                let point = self.petPoint(PetPropRules.headXFraction, 0.35)
+                _ = self.props.handleDoubleClick(at: point)
+                _ = self.props.handleDoubleClick(at: point)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+                    Log.write("pot test after knock: onHead=\(self?.props.hasPotOnHead ?? false)")
                 }
             }
         }
-        guard !soundPlayers.isEmpty else { return }
-        let player = soundPlayers[soundIndex]
-        soundIndex = (soundIndex + 1) % soundPlayers.count
-        player.stop()
-        player.play()
+    }
+
+    /// Fractions are measured on the 1536x1024 artwork, y down from its top.
+    func petPoint(_ fx: CGFloat, _ fy: CGFloat) -> CGPoint {
+        guard let view = view else { return .zero }
+        let rect = view.spriteRectScreenDown
+        return CGPoint(x: rect.minX + rect.width * (state.mirrored ? 1-fx : fx), y: rect.minY + rect.height * fy)
+    }
+
+    func petSolid(at point: CGPoint) -> Bool {
+        guard let view = view, let sprite = view.hitSprite else { return false }
+        let rect = view.spriteRectScreenDown
+        guard rect.width > 0, rect.height > 0, rect.contains(point) else { return false }
+        return sprite.isOpaque(normalizedX: state.mirrored ? 1-(point.x-rect.minX)/rect.width : (point.x-rect.minX)/rect.width,
+                               yFromTop: (point.y - rect.minY) / rect.height)
+    }
+
+    private func handleFeed(amount: Int, test: Bool) {
+        sounds.play(.feed)
+        model.deliverCredit(cents: amount, test: test)
+        writeStatus()
+        Log.write(String(format: "fed: +%.2f%@", Double(amount) / 100, test ? " (test)" : ""))
+    }
+
+    // MARK: - Sound
+
+    private func playHit() {
+        guard state.soundOn else { return }
+        sounds.play(.hit)
     }
 
     // MARK: - Menus
 
-    private func buildMenu(into boxes: inout [ActionBox]) -> NSMenu {
+    func buildMenu(into boxes: inout [ActionBox]) -> NSMenu {
         boxes.removeAll()
-        let menu = NSMenu()
+        let rootMenu = NSMenu()
+        var menu = rootMenu
         menu.autoenablesItems = false
         menu.delegate = self
 
@@ -337,7 +492,20 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(item("立即刷新余额", schedule.canRefresh(at: CACurrentMediaTime())) { [weak self] in
             self?.poll(snap: true, force: true)
         })
+        let demonstrations = NSMenu(title: "演示")
+        demonstrations.autoenablesItems = false; demonstrations.delegate = self
+        let demonstrationsItem = NSMenuItem(title: "演示", action: nil, keyEquivalent: "")
+        demonstrationsItem.submenu = demonstrations; rootMenu.addItem(demonstrationsItem)
+        menu = demonstrations
         menu.addItem(item("测试一次扣费") { [weak self] in self?.model.playOneHit() })
+        menu.addItem(item("测试充值动画（+3.00）") { [weak self] in
+            self?.props.spawnRice(amount: 3.0, test: true)
+        })
+        let radarInfo = NSMenuItem(title: "火控雷达：饭盆出现时自动显示", action: nil, keyEquivalent: "")
+        radarInfo.isEnabled = false; menu.addItem(radarInfo)
+        menu.addItem(item("自定义扣费次数…") { [weak self] in self?.askDemo(credit: false) })
+        menu.addItem(item("自定义充值金额…") { [weak self] in self?.askDemo(credit: true) })
+
 
         let demo = NSMenuItem(title: "演示连续扣费", action: nil, keyEquivalent: "")
         let demoMenu = NSMenu(title: demo.title)
@@ -354,6 +522,18 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(demo)
         menu.setSubmenu(demoMenu, for: demo)
 
+        let settings = NSMenu(title: "设置")
+        settings.autoenablesItems = false; settings.delegate = self
+        let settingsItem = NSMenuItem(title: "设置", action: nil, keyEquivalent: "")
+        settingsItem.submenu = settings; rootMenu.addItem(settingsItem)
+        menu = settings
+        menu.addItem(item(self.state.bowlOnCredit ? "✓ 充值时掉米饭盆" : "　充值时掉米饭盆") { [weak self] in
+            guard let self = self else { return }
+            self.state.bowlOnCredit.toggle()
+            self.model.suppressCreditFlourish = self.state.bowlOnCredit
+            if !self.state.bowlOnCredit { self.props.removeAll(); self.model.forceSnapToReal() }
+            self.state.save()
+        })
         let characterMenu = NSMenu(title: "切换角色")
         characterMenu.autoenablesItems = false
         characterMenu.delegate = self
@@ -384,7 +564,7 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(sizeItem)
         menu.setSubmenu(sizeMenu, for: sizeItem)
 
-        menu.addItem(item(state.snapOnRelease ? "✓ 松手吸附左下角" : "　松手吸附左下角") { [weak self] in
+        menu.addItem(item(state.snapOnRelease ? "✓ 自动回到所选底角" : "　自动回到所选底角") { [weak self] in
             guard let self = self else { return }
             self.state.snapOnRelease.toggle()
             self.state.save()
@@ -392,10 +572,47 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(item(state.soundOn ? "✓ 音效" : "　音效") { [weak self] in
             guard let self = self else { return }
             self.state.soundOn.toggle()
-            if !self.state.soundOn { self.soundPlayers.forEach { $0.stop() } }
+            self.sounds.enabled = self.state.soundOn
             self.state.save()
         })
 
+        menu.addItem(item(state.patEnabled ? "✓ 划动摸头" : "　划动摸头") { [weak self] in
+            guard let self = self else { return }; self.state.patEnabled.toggle(); self.state.save()
+        })
+        menu.addItem(item(state.hurtEffects ? "✓ 扣费动画" : "　扣费动画") { [weak self] in
+            guard let self = self else { return }; self.state.hurtEffects.toggle()
+            self.model.hurtEffects = self.state.hurtEffects; self.state.save()
+        })
+        menu.addItem(item(state.mirrored ? "吸附到左下角" : "吸附到右下角") { [weak self] in
+            guard let self = self else { return }; self.state.mirrored.toggle()
+            self.view.mirrored = self.state.mirrored; self.view.needsDisplay = true
+            self.snapToCorner(animated: false); self.props.resizeProps(); self.state.save()
+        })
+        let audioMenu = NSMenu(title: "各项音量")
+        for (index, cue) in PetSound.allCases.enumerated() {
+            let titles = ["扣费", "喂饭", "扣盆", "取盆"]
+            let sub = NSMenu(title: titles[index])
+            for level in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0] {
+                let choice = item("\(Int(level*100))%") { [weak self] in
+                    guard let self = self else { return }; self.state.cueVolumes[index] = level
+                    self.sounds.volumes = self.state.cueVolumes.map { Float($0) }; self.sounds.play(cue); self.state.save()
+                }
+                choice.state = abs(state.cueVolumes[index]-level)<0.01 ? .on : .off
+                sub.addItem(choice)
+            }
+            sub.addItem(.separator())
+            sub.addItem(item("选择自定义音效…") { [weak self] in self?.chooseSound(cue) })
+            sub.addItem(item("恢复原版音效") { [weak self] in
+                try? FileManager.default.removeItem(at: SoundBank.customURL(for: cue))
+                self?.sounds.preload(); self?.sounds.play(cue)
+            })
+            let row = NSMenuItem(title: titles[index], action: nil, keyEquivalent: ""); row.submenu = sub; audioMenu.addItem(row)
+        }
+        let audioItem = NSMenuItem(title: audioMenu.title, action: nil, keyEquivalent: ""); audioItem.submenu = audioMenu; menu.addItem(audioItem)
+        menu.addItem(item("切换平板消费读数（也可双击平板）") { [weak self] in self?.toggleTariff() })
+        menu.addItem(item("清理桌面上的饭盆和铁盆") { [weak self] in
+            self?.props.removeAll(); self?.model.forceSnapToReal(); self?.view.needsDisplay = true
+        })
         let intervalMenu = NSMenu(title: "刷新间隔")
         intervalMenu.autoenablesItems = false
         intervalMenu.delegate = self
@@ -418,11 +635,12 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.setSubmenu(intervalMenu, for: intervalItem)
 
         menu.addItem(.separator())
+        menu = rootMenu
+        menu.addItem(.separator())
         menu.addItem(item("设置 API Key…") { [weak self] in self?.askForKey() })
         menu.addItem(item("重新读取凭证") { [weak self] in self?.reloadCredential() })
         menu.addItem(item("吸附回左下角") { [weak self] in
-            self?.snapToCorner(animated: true)
-            self?.state.save()
+            self?.returnToLeftCorner()
         })
         menu.addItem(item("打开日志") {
             NSWorkspace.shared.open(PetPaths.logURL)
@@ -485,6 +703,12 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         screen?.visibleFrame ?? .zero
     }
 
+    func toggleTariff() { tariffMode.toggle(); updateTariff() }
+    private func updateTariff() {
+        view?.tariff = tariffMode ? (Double(usage.todayCents)/100, usage.hourlyRate) : nil
+        view?.needsDisplay = true
+    }
+
     // MARK: - Actions
 
     private func setCharacter(_ character: PetCharacter) {
@@ -502,12 +726,15 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let newSize = PetLayout.windowSize(side: side)
         let origin = window.frame.origin
         window.setFrame(NSRect(origin: origin, size: newSize), display: true)
+        props.resizeProps()
         keepWindowVisible()
         state.windowOrigin = window.frame.origin
         state.save()
     }
 
     private func reloadCredential() {
+        props.removeAll()
+        usage.resetBaseline()
         credential = CredentialStore.resolve()
         schedule.reload(at: CACurrentMediaTime())
         model.resetForCredentialChange()
@@ -519,6 +746,47 @@ final class PetController: NSObject, NSApplicationDelegate, NSMenuDelegate {
         poll(snap: true)
         Log.write("credential reloaded: \(credential?.shortDescription ?? "none")")
     }
+
+    private func askDemo(credit: Bool) {
+        let alert = NSAlert()
+        alert.messageText = credit ? "模拟充值金额（元）" : "模拟扣费次数（1–500）"
+        let field = NSTextField(string: credit ? "3.00" : "10")
+        field.frame = CGRect(x: 0, y: 0, width: 240, height: 24)
+        alert.accessoryView = field; alert.addButton(withTitle: "播放"); alert.addButton(withTitle: "取消")
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        if credit, let amount = Double(field.stringValue), amount.isFinite, amount >= 0.01, amount <= 1_000_000 {
+            props.spawnRice(amount: amount, test: true)
+        } else if !credit, let count = Int(field.stringValue), (1...500).contains(count) {
+            model.playDemo(times: count)
+        }
+    }
+
+    private func chooseSound(_ cue: PetSound) {
+        let panel = NSOpenPanel()
+        panel.title = "选择音效（60 秒以内，20 MB 以内）"
+        panel.allowedContentTypes = [.audio]
+        panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
+        NSApp.activate(ignoringOtherApps: true)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let bytes = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max
+            guard bytes <= 20_000_000 else { throw SoundImportError.invalid }
+            let data = try Data(contentsOf: url)
+            guard let audio = NSSound(data: data), audio.duration.isFinite, audio.duration > 0, audio.duration <= 60 else {
+                throw SoundImportError.invalid
+            }
+            let output = SoundBank.customURL(for: cue)
+            try FileManager.default.createDirectory(at: output.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try data.write(to: output, options: .atomic)
+            sounds.preload(); sounds.play(cue)
+        } catch {
+            let alert = NSAlert(); alert.messageText = "请选择可播放、60 秒以内且不超过 20 MB 的音频"
+            alert.runModal()
+        }
+    }
+
+    private enum SoundImportError: Error { case invalid }
 
     private func askForKey() {
         NSApp.activate(ignoringOtherApps: true)

@@ -2,22 +2,24 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleName</key>
-	<string>DSH大肥鱼桌宠</string>
 	<key>CFBundleDisplayName</key>
 	<string>DSH大肥鱼桌宠</string>
-	<key>CFBundleIdentifier</key>
-	<string>local.dsh.balance-pet</string>
 	<key>CFBundleExecutable</key>
 	<string>DSHBalancePet</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>local.dsh.balance-pet</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>DSH大肥鱼桌宠</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.3.1</string>
+	<string>1.4.3</string>
 	<key>CFBundleVersion</key>
-	<string>7</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
+	<string>12</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSUIElement</key>
@@ -25,6 +27,6 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>macOS port of the Windows original in this repository. Adapted pet artwork and original audio with source attribution.</string>
+	<string>macOS port of VKmich16/V. Adapted pet artwork and original audio with source attribution.</string>
 </dict>
 </plist>

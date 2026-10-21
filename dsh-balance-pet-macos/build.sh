@@ -41,14 +41,31 @@ else
 fi
 
 echo "==> copying four characters and original sound"
-for sprite in sprite.png sprite-gpt.png sprite-claude.png sprite-gemini.png sprite-deepseek-offline.png; do
+for sprite in sprite.png sprite-gpt.png sprite-claude.png sprite-gemini.png sprite-deepseek-offline.png \
+              sprite-expression-nervous.png sprite-expression-aloof.png sprite-expression-calm.png; do
   cp "$ROOT/Resources/$sprite" "$APP/Contents/Resources/$sprite"
 done
-cp "$ROOT/Resources/hit.mp3" "$APP/Contents/Resources/hit.mp3"
+for patch in "$ROOT"/Resources/face-*.png; do
+  cp "$patch" "$APP/Contents/Resources/"
+done
+for extra in hit.mp3 feed.mp3 pot_land.mp3 pot_off.mp3; do
+  cp "$ROOT/Resources/$extra" "$APP/Contents/Resources/$extra"
+done
+for hand in 0 1 2 3 4; do
+  cp "$ROOT/Resources/pat_hand_$hand.png" "$APP/Contents/Resources/pat_hand_$hand.png"
+done
+cp "$ROOT/Resources/rice.png" "$APP/Contents/Resources/rice.png"
+cp "$ROOT/Resources/iron-bowl.png" "$APP/Contents/Resources/iron-bowl.png"
+cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
-xattr -cr "$APP"
-codesign --force --sign - "$APP"
+# Finder metadata (com.apple.FinderInfo) makes codesign refuse the bundle.
+dot_clean -m "$APP" 2>/dev/null || true
+xattr -cr "$APP" 2>/dev/null || true
+codesign --force --sign - "$APP" || {
+  xattr -cr "$APP" 2>/dev/null || true
+  codesign --force --sign - "$APP"
+}
 codesign --verify --strict "$APP"
 
 # Keep the last successful build usable until the replacement is ready.

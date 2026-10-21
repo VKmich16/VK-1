@@ -10,7 +10,7 @@
 | 平台 | 当前版本 | 技术栈 | 说明 |
 | --- | --- | --- | --- |
 | 🪟 **Windows** | **v3** | PowerShell 5.1 + 内嵌 C# | 见下文「Windows 版」 |
-| 🍎 **macOS** | **v1.3.1** | Swift + AppKit | 见下文「macOS 版」 |
+| 🍎 **macOS** | **v1.4.3** | Swift + AppKit | 见下文「macOS 版」 |
 | 🌐 **DSH 网页插件** · [@YCTS-otree](https://github.com/YCTS-otree) | 社区维护 | DSH bundle（JS） | 把 D-16BVM 移植进 DSH，支持与其它余额插件一键互切 |
 | 🌐 **DSH 网页插件** · [@TsukiKenga](https://github.com/TsukiKenga) | 社区维护 | DSH bundle（JS） | 五角色可切换 · 扣费步长可配 · 6 路音效各自调节 |
 | 🌐 **独立网页嵌入** | **v0.1.1** | 普通网页 JS + 可选 Python 余额服务 | 不依赖 DSH，可放进自己的网页，见下文「网页嵌入」 |
@@ -163,7 +163,7 @@ Windows 版与 macOS 版**互不依赖**，各自独立运行；都只访问 Dee
 
 一个用于 **DeepSeek Harness** 的 macOS 原生余额桌宠。角色手持平板显示余额，扣费时播放受击动画与原版音效，充值时显示提示。使用 Swift + AppKit 开发，无第三方运行时依赖。
 
-**当前版本 v1.3.1**：支持蓝色大肥鱼、GPT龙娘、大小姐Claude、北美猫娘Gemini四个角色；蓝色大肥鱼未连接时显示抱盆图，隐藏余额文字。
+**当前版本 v1.4.3**：四角色表情、喂饭与叠盆、火控雷达、悬停划动摸头、Dock 适配及自动回位。社区补充由 @Springthunderss 在 DSH、Codex 协助下完成，见[简短改动说明](dsh-balance-pet-macos/COMMUNITY-README.md)。
 
 ### 四个角色
 
@@ -194,6 +194,14 @@ Windows 版与 macOS 版**互不依赖**，各自独立运行；都只访问 Dee
 
 ### 更新记录
 
+#### v1.4.3 · Mac 趣味交互与桌面适配
+
+- 补充喂饭、铁盆拖动/叠盆、火控雷达和五帧悬停划动摸头。
+- 道具停在 Dock 上方；修复回左下角、空闲回位、顶盆接缝与侧发裁切。
+- 四个角色补齐表情，增加左右朝向、独立音量和音频导入；限制道具与响应大小，改进余额处理与对象释放。
+- [![顶盆预览](dsh-balance-pet-macos/docs/previews/hat-seam-v143.png)](dsh-balance-pet-macos/docs/screenshots/hat-seam-v143.png)
+- 在 Apple Silicon / macOS 27.0.1 上通过 591 项离线断言并生成 170 张离屏预览；[社区试用包和源码](https://github.com/Springthunderss/VK-1/releases/tag/macos-v1.4.3-community)。
+
 #### v1.3.1 · 离线抱盆状态
 
 - 蓝色大肥鱼在未配置 API Key / 账号凭证、连接中或连接失败时，使用上方抱盆图。
@@ -208,6 +216,8 @@ Windows 版与 macOS 版**互不依赖**，各自独立运行；都只访问 Dee
 - 切换保留余额、动画、位置及尺寸；加入四角色使用截图和透明原图展示。
 
 ### 下载与运行
+
+本次 v1.4.3 社区试用构建（Apple Silicon）见[下载附件](https://github.com/Springthunderss/VK-1/releases/tag/macos-v1.4.3-community)；以下原有 Release 链接仍可获取上游稳定版。
 
 前往 [最新 Release](https://github.com/Andromedahk/DSH-DaFeiYu-Desktop-Pet/releases/latest)，下载 `DSH-DaFeiYu-macOS.zip`，解压后将 **DSH大肥鱼桌宠.app** 放入“应用程序”并打开。
 

@@ -27,3 +27,11 @@
 Gemini 的右手伸入屏幕较多，因此文字区域单独收窄以避开手指。
 
 原版作者说明 UI 图片由其处理；原版暂未附许可证。这里保留来源说明，不另行授予原版代码、素材或衍生图片的许可。
+
+
+## v1.4.3 社区补充
+
+- `rice.png`、`iron-bowl.png`、三个 `sprite-expression-*.png`、五张 `pat_hand_*.png` 与三项新增音效来自同一上游提交的 Windows 资源。
+- `face-{gpt,claude,gemini}-{nervous,aloof,calm}.png` 为在原角色参考图上经 image_gen 编辑后裁切、柔化的脸部贴图，共九张；状态及提示词见 [表情来源](../docs/expressions.md)。
+- `AppIcon.icns` 为自定义角色图标，并修补了原截图鞋底的截断；处理方法见 [图标说明](../docs/icon-repair.md)。
+- 原有角色 PNG 和 `hit.mp3` 保留原始文件字节；程序仅在绘制时叠加脸部和道具。

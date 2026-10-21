@@ -23,10 +23,17 @@ enum PetLayout {
                       width: size.width, height: size.height)
     }
 
-    static func tabletTransform(in bounds: CGRect, character: PetCharacter = .deepseek) -> CGAffineTransform {
+    static func tabletTransform(in bounds: CGRect, character: PetCharacter = .deepseek, mirrored: Bool = false) -> CGAffineTransform {
         // Convert the selected image's measured corners to bottom-origin source
         // coordinates, using the exact same scale as its sprite and alpha mask.
-        let corners = character.tabletCorners
+        var corners = character.tabletCorners
+        if mirrored {
+            let c = corners
+            let br = CGPoint(x: c.topRight.x+c.bottomLeft.x-c.topLeft.x, y: c.topRight.y+c.bottomLeft.y-c.topLeft.y)
+            corners = (CGPoint(x: artworkSize.width-c.topRight.x, y: c.topRight.y),
+                       CGPoint(x: artworkSize.width-c.topLeft.x, y: c.topLeft.y),
+                       CGPoint(x: artworkSize.width-br.x, y: br.y))
+        }
         let rect = spriteRect(in: bounds)
         let scale = rect.width / artworkSize.width
         return CGAffineTransform(a: (corners.topRight.x - corners.topLeft.x) / tabletBounds.width * scale,

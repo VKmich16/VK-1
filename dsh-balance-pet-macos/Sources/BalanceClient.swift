@@ -77,7 +77,56 @@ enum FetchError: Error {
 
 /// Refuse all redirects. In particular, URLSession must never forward the
 /// platform's custom authentication header to another host or an HTTP URL.
-final class BalanceSessionDelegate: NSObject, URLSessionTaskDelegate {
+final class BalanceSessionDelegate: NSObject, URLSessionDataDelegate {
+    static let maxResponseBytes = 1_048_576
+    typealias ResultHandler = (Result<(Int, Data, [String: String]), Error>) -> Void
+    private struct Pending {
+        var data = Data()
+        var response: HTTPURLResponse?
+        var tooLarge = false
+        let completion: ResultHandler
+    }
+    private var pending: [Int: Pending] = [:]
+    private let lock = NSLock()
+
+    func register(_ task: URLSessionTask, completion: @escaping ResultHandler) {
+        lock.lock(); defer { lock.unlock() }
+        pending[task.taskIdentifier] = Pending(completion: completion)
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse,
+                    completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+        lock.lock()
+        let large = response.expectedContentLength > Int64(Self.maxResponseBytes)
+        pending[dataTask.taskIdentifier]?.response = response as? HTTPURLResponse
+        pending[dataTask.taskIdentifier]?.tooLarge = large
+        lock.unlock()
+        completionHandler(large ? .cancel : .allow)
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        lock.lock()
+        guard var entry = pending[dataTask.taskIdentifier] else { lock.unlock(); return }
+        if data.count > Self.maxResponseBytes-entry.data.count { entry.tooLarge = true }
+        else if !entry.tooLarge { entry.data.append(data) }
+        pending[dataTask.taskIdentifier] = entry
+        lock.unlock()
+        if entry.tooLarge { dataTask.cancel() }
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        lock.lock()
+        let entry = pending.removeValue(forKey: task.taskIdentifier)
+        lock.unlock()
+        guard let entry = entry else { return }
+        if entry.tooLarge { entry.completion(.failure(FetchError.parse("响应超过 1 MB"))); return }
+        if error != nil { entry.completion(.failure(FetchError.transport("请求未完成，请检查网络连接"))); return }
+        guard let http = entry.response else { entry.completion(.failure(FetchError.transport("没有 HTTP 响应"))); return }
+        var headers: [String: String] = [:]
+        for (key, value) in http.allHeaderFields { headers[String(describing: key).lowercased()] = String(describing: value) }
+        entry.completion(.success((http.statusCode, entry.data, headers)))
+    }
+
     func urlSession(_ session: URLSession, task: URLSessionTask,
                     willPerformHTTPRedirection response: HTTPURLResponse,
                     newRequest request: URLRequest,
@@ -102,6 +151,7 @@ private final class BalanceResponseBox: @unchecked Sendable {
 }
 
 enum BalanceClient {
+    private static let delegate = BalanceSessionDelegate()
     private static let session: URLSession = {
         let cfg = URLSessionConfiguration.ephemeral
         cfg.urlCache = nil
@@ -109,7 +159,7 @@ enum BalanceClient {
         cfg.httpCookieStorage = nil
         cfg.httpShouldSetCookies = false
         cfg.timeoutIntervalForRequest = 20
-        return URLSession(configuration: cfg, delegate: BalanceSessionDelegate(), delegateQueue: nil)
+        return URLSession(configuration: cfg, delegate: delegate, delegateQueue: nil)
     }()
 
     static func fetch(_ cred: Credential, timeout: TimeInterval = 20) throws -> BalanceReading {
@@ -129,23 +179,10 @@ enum BalanceClient {
         }
         let sem = DispatchSemaphore(value: 0)
         let box = BalanceResponseBox()
-        let task = session.dataTask(with: req) { data, response, error in
-            defer { sem.signal() }
-            if error != nil {
-                // URLSession errors can contain request URLs; keep the status file
-                // and log free of arbitrary server content or credential material.
-                box.set(.failure(FetchError.transport("请求未完成，请检查网络连接")))
-                return
-            }
-            guard let http = response as? HTTPURLResponse else {
-                box.set(.failure(FetchError.transport("没有 HTTP 响应")))
-                return
-            }
-            var headers: [String: String] = [:]
-            for (key, value) in http.allHeaderFields {
-                headers[String(describing: key).lowercased()] = String(describing: value)
-            }
-            box.set(.success((http.statusCode, data ?? Data(), headers)))
+        let task = session.dataTask(with: req)
+        delegate.register(task) { result in
+            box.set(result)
+            sem.signal()
         }
         task.resume()
         if sem.wait(timeout: .now() + timeout + 5) == .timedOut {

@@ -25,14 +25,23 @@ trap cleanup EXIT
 
 "$BIN" --selftest | tee "$OUT/selftest.txt"
 "$BIN" --snapshot "$OUT/snapshots"
+"$BIN" --gameplay-snapshot "$OUT/gameplay-snapshots"
+"$BIN" --expression-preview "$OUT/expressions"
+"$BIN" --props-preview "$OUT/props"
+for patch in "$ROOT"/Resources/face-*.png; do
+  cmp "$patch" "$ROOT/dist/DSH大肥鱼桌宠.app/Contents/Resources/$(basename "$patch")"
+done
 codesign --verify --strict "$ROOT/dist/DSH大肥鱼桌宠.app"
 [[ "$(shasum -a 256 "$ROOT/Resources/sprite.png" | cut -d ' ' -f 1)" == a98329d36dd9169a1856f3a396bc9e602ed1a739bd3097eead1b744c6bb3dd71 ]]
 [[ "$(shasum -a 256 "$ROOT/Resources/sprite-gpt.png" | cut -d ' ' -f 1)" == 41f79346666fbb776ee2baef2a0cf044850a50e30c177b3adf9bb14e84296467 ]]
 [[ "$(shasum -a 256 "$ROOT/Resources/sprite-claude.png" | cut -d ' ' -f 1)" == 81f0e787057dd9d5e400e5f43a44a1b55da4adfa7329aa712d986531cbd5d90d ]]
 [[ "$(shasum -a 256 "$ROOT/Resources/sprite-gemini.png" | cut -d ' ' -f 1)" == ad5fbeb07c2212476d4670ec56b8e7202e21f05b42ab0461cf3150a43f91a2ef ]]
 [[ "$(shasum -a 256 "$ROOT/Resources/sprite-deepseek-offline.png" | cut -d ' ' -f 1)" == fb4c5cb3001ca43d268d2e3bdf39b9d984e28d592e3b73e46e6fd44ccebb4555 ]]
-cmp "$ROOT/Resources/hit.mp3" "$ROOT/../原版（Windows版）/DSH余额桌宠/hit.mp3"
-for resource in sprite.png sprite-gpt.png sprite-claude.png sprite-gemini.png sprite-deepseek-offline.png hit.mp3; do
+# The upstream archive is optional in a trimmed checkout.
+if [[ -f "$ROOT/../原版（Windows版）/DSH余额桌宠/hit.mp3" ]]; then
+  cmp "$ROOT/Resources/hit.mp3" "$ROOT/../原版（Windows版）/DSH余额桌宠/hit.mp3"
+fi
+for resource in sprite.png sprite-gpt.png sprite-claude.png sprite-gemini.png sprite-deepseek-offline.png sprite-expression-nervous.png sprite-expression-aloof.png sprite-expression-calm.png rice.png iron-bowl.png hit.mp3 feed.mp3 pot_land.mp3 pot_off.mp3 AppIcon.icns pat_hand_0.png pat_hand_1.png pat_hand_2.png pat_hand_3.png pat_hand_4.png; do
   cmp "$ROOT/Resources/$resource" "$ROOT/dist/DSH大肥鱼桌宠.app/Contents/Resources/$resource"
 done
 

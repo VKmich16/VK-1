@@ -11,17 +11,25 @@ enum Diagnostics {
         let a = CommandLine.arguments
         return a.contains("--selftest") || a.contains("--check")
             || a.contains("--snapshot") || a.contains("--windows")
-            || a.contains("--screens") || a.contains("--reset")
+            || a.contains("--screens") || a.contains("--reset") || a.contains("--gameplay-snapshot")
+            || a.contains("--props-preview") || a.contains("--expression-preview")
     }
 
     static func run() -> Int32 {
         let a = CommandLine.arguments
         if a.contains("--selftest") { return selfTest() }
+        if let i = a.firstIndex(of: "--gameplay-snapshot") { return gameplaySnapshot(into: i+1<a.count ? a[i+1] : "./gameplay-snapshots") }
         if a.contains("--screens") { return screens() }
         if a.contains("--windows") { return windowProbe() }
         if a.contains("--reset") { return reset() }
         if let i = a.firstIndex(of: "--snapshot") {
             return snapshot(into: i + 1 < a.count ? a[i + 1] : "./snapshots")
+        }
+        if let i = a.firstIndex(of: "--props-preview") {
+            return propsPreview(into: i + 1 < a.count ? a[i + 1] : "./props-preview")
+        }
+        if let i = a.firstIndex(of: "--expression-preview") {
+            return expressionPreview(into: i + 1 < a.count ? a[i + 1] : "./expression-preview")
         }
         return check()
     }
@@ -83,6 +91,9 @@ enum Diagnostics {
         failures = 0
         print("== balance and animation regressions ==")
         ModelSelfTests.run(expect)
+        GameplaySelfTests.run(expect)
+        SnapSelfTests.run(expect)
+        CrownSelfTests.run(expect)
         print("\n== request scheduling regressions ==")
         PollScheduleSelfTests.run(expect)
         print("\n== network and credential fixtures (offline) ==")
@@ -93,6 +104,44 @@ enum Diagnostics {
 
         print(failures == 0 ? "\nALL PASS" : "\n\(failures) FAILURE(S)")
         return failures == 0 ? 0 : 1
+    }
+
+    static func gameplaySnapshot(into directory: String) -> Int32 {
+        _ = NSApplication.shared
+        let dest = URL(fileURLWithPath: directory, isDirectory: true)
+        try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
+        for character in PetCharacter.allCases { for mirror in [false, true] {
+            var state = PetState(); state.sizeIndex = 3; state.soundOn = false; state.mirrored = mirror
+            let c = PetController(state: state, visible: false)
+            c.model.apply(reading: BalanceReading(normalCny: 100, bonusCny: 0, spentCny: nil, raw: ""), snap: true)
+            let v = PetView(model: c.model, character: character)
+            v.frame = CGRect(origin: .zero, size: PetLayout.windowSize(side: 280))
+            v.mirrored = mirror; v.controller = c; c.view = v; c.props.controller = c
+            c.props.headRim = { CGPoint(x: 500, y: 500) }
+            for count in 1...3 {
+                c.props.spawnIronAboveHead()
+                if let p = c.props.props.last { c.props.attachPot(p, slot: count-1) }
+                v.setExpression(.calm)
+                v.frame.size.height = max(v.frame.height, c.props.requiredHeadHeight)
+                let file = dest.appendingPathComponent("hat-\(character.rawValue)-\(mirror ? "right" : "left")-\(count).png")
+                if !render(v, to: file, transparent: false) { return 1 }
+            }
+            c.props.removeAll()
+            var gesture = PatGesture()
+            for i in 0..<100 {
+                gesture.tick(1.0/60, point: CGPoint(x: (i%2)*20, y: 100), onPet: true, button: false,
+                             movingPet: false, enabled: true, hasPot: false, knock: {})
+                if gesture.active { break }
+            }
+            for frame in 0..<5 {
+                v.pat = gesture; v.setExpression(.nervous)
+                let file = dest.appendingPathComponent("pat-\(character.rawValue)-\(mirror ? "right" : "left")-\(frame).png")
+                if !render(v, to: file, transparent: false) { return 1 }
+                gesture.tick(0.04, point: CGPoint(x: 200+frame*20, y: 100), onPet: true, button: false,
+                             movingPet: false, enabled: true, hasPot: false, knock: {})
+            }
+        } }
+        return 0
     }
 
     // MARK: - Live request
@@ -124,6 +173,79 @@ enum Diagnostics {
             print("FAILED: \(error)")
             return 2
         }
+    }
+
+    // MARK: - Expression preview
+
+    /// Renders all four faces so the ported expression states can be inspected
+    /// without screen recording.
+    static func expressionPreview(into directory: String) -> Int32 {
+        _ = NSApplication.shared
+        let dir = URL(fileURLWithPath: directory)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let model = PetModel()
+        model.apply(reading: BalanceReading(normalCny: 38.61, bonusCny: 0, spentCny: nil, raw: ""), snap: true)
+        var written = 0
+        for character in PetCharacter.allCases { for expression in PetExpression.allCases {
+            let view = PetView(model: model, character: character)
+            view.frame = NSRect(origin: .zero, size: PetLayout.windowSize(side: 280))
+            view.setExpression(expression)
+            if render(view, to: dir.appendingPathComponent("\(character.rawValue)-expression-\(expression.rawValue).png")) { written += 1 }
+        } }
+        print("wrote \(written) expression render(s) to \(dir.path)")
+        return written == PetCharacter.allCases.count * PetExpression.allCases.count ? 0 : 1
+    }
+
+    // MARK: - Prop / radar preview
+
+    /// Renders the radar plate and both props off-screen so their geometry can be
+    /// inspected without a screen recording.
+    static func propsPreview(into directory: String) -> Int32 {
+        _ = NSApplication.shared
+        let dir = URL(fileURLWithPath: directory)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        let size = NSSize(width: 900, height: 700)
+        let overlay = RadarOverlayView(frame: NSRect(origin: .zero, size: size))
+        var plate = RadarPlate()
+        plate.on = true
+        plate.s = 223
+        plate.distText = "1.4 kpt"
+        plate.closureText = "-152 pt/s"
+        plate.altText = "312 pt"
+        plate.dirDeg = -38
+        overlay.plates = [(CGPoint(x: 430, y: 330), plate)]
+        let canvas = NSView(frame: NSRect(origin: .zero, size: size))
+        canvas.wantsLayer = true
+        canvas.layer?.backgroundColor = NSColor(srgbRed: 0.11, green: 0.13, blue: 0.18, alpha: 1).cgColor
+        overlay.frame = canvas.bounds
+        canvas.addSubview(overlay)
+        _ = render(canvas, to: dir.appendingPathComponent("radar.png"))
+
+        for (index, centre) in [CGPoint(x:300,y:260),CGPoint(x:45,y:260),CGPoint(x:555,y:260)].enumerated() {
+            let edge = RadarOverlayView(frame: CGRect(x:0,y:0,width:600,height:300))
+            var value = RadarPlate(); value.on = true; value.locked = true; value.s = 100
+            value.distText = "1.4 kpt"; value.closureText = "-152 pt/s"; value.altText = "312 pt"; value.dirDeg = -38
+            edge.plates = [(centre,value)]
+            _ = render(edge, to: dir.appendingPathComponent("radar-floor-\(index).png"), transparent: false)
+        }
+
+        for (name, kind) in [("rice", PetProp.Kind.rice), ("iron", PetProp.Kind.iron)] {
+            let artSize = kind == .rice ? CGSize(width: 66, height: 66) : CGSize(width: 111, height: 39)
+            let radius = artSize.width * 0.42
+            let prop = PetProp(kind: kind, x: 100, y: 100, radius: radius, artSize: artSize)
+            let halfW = artSize.width / 2 + 8
+            let halfH = max(radius, artSize.height - radius) + 8
+            let view = PropView(frame: NSRect(x: 0, y: 0, width: halfW * 2, height: halfH * 2))
+            view.prop = prop
+            let host = NSView(frame: NSRect(x: 0, y: 0, width: halfW * 2, height: halfH * 2))
+            host.wantsLayer = true
+            host.layer?.backgroundColor = NSColor(srgbRed: 0.11, green: 0.13, blue: 0.18, alpha: 1).cgColor
+            host.addSubview(view)
+            _ = render(host, to: dir.appendingPathComponent("\(name).png"))
+        }
+        print("wrote props preview to \(dir.path)")
+        return 0
     }
 
     // MARK: - Off-screen render

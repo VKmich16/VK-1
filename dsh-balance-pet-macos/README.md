@@ -1,5 +1,21 @@
 # DSH大肥鱼桌宠 · macOS
 
+> **v1.4.3 社区贡献**：新增喂饭、顶盆、雷达、悬停划动摸头、四角色表情及 Dock 适配。先看 [简短改动说明](COMMUNITY-README.md)，[试用包与源码](https://github.com/Springthunderss/VK-1/releases/tag/macos-v1.4.3-community) 提供本机验证过的 Apple Silicon 构建。
+
+## v1.4.3 操作补充
+
+- 角色和道具以 `NSScreen.visibleFrame` 为边界，避免 Dock 遮挡。
+- “吸附回左下角”明确回左侧；“设置 → 自动回到所选底角”按朝向选择左下或右下，松手即回位，其他偏移空闲 0.2 秒后回位，动画 0.16 秒。
+- 饭盆出现即显示雷达，首次落地后等待 10 秒锁定，再过 1 秒吸收；读数使用 macOS 逻辑点 pt。
+- 不按鼠标，在角色不透明区域累计划动 24 pt 并持续移动 0.5 秒触发摸头。停止/离开 0.15 秒结束，按键、拖动或回位后冷却 1 秒；头上有盆时先取盆。
+- 菜单增加独立音量、音频文件导入、左右朝向、充值/扣费演示；双击平板切换本机观察的消费读数。
+- 四个角色都有四种表情；新增贴图来源见 [表情说明](docs/expressions.md)，顶盆接缝见 [边缘修复](docs/crown-seam.md)。
+- 道具最多 32 个，单个响应上限 1 MiB；单个 30 Hz 主循环驱动。
+- `./verify.sh` 覆盖 591 项断言和 170 张离屏图，含真实菜单事件、窗口回位、雷达计时、道具释放和盆沿合成；`--expression-preview DIR`、`--gameplay-snapshot DIR`、`--props-preview DIR` 可单独生成相应预览。
+
+[![顶盆接缝预览](docs/previews/hat-seam-v143.png)](docs/screenshots/hat-seam-v143.png)
+
+
 用于 DeepSeek Harness 的原生余额桌宠，基于本仓库中的 Windows 原版移植。1.3.1 支持四个内置角色：**蓝色大肥鱼、GPT龙娘、大小姐Claude、北美猫娘Gemini**，保留原版 `hit.mp3` 音效；余额在每个角色手持的倾斜平板内显示。
 
 它是独立的 Swift + AppKit 应用，可读取 DSH 凭证；无需修改或持续运行 DSH。目前维护和支持 macOS 13+。
