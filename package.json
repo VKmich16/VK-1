@@ -1,0 +1,27 @@
+{
+  "name": "dsh-vk1-balance-pet",
+  "version": "1.2.0",
+  "private": true,
+  "description": "VK-1 余额桌宠（DSH 插件版）：把 VKmich16/VK-1 的网页嵌入实现移植成 DSH bundle——角色举平板显示 DeepSeek 余额（自动读取 DSH 账号额度，无需 API Key），逐分扣费红闪/震动/飘字/音效，四种表情，充值掉米饭盆，铁盆扣头，火控雷达名牌",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "lib",
+    "widget.js",
+    "loader.js",
+    "assets",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT"
+}
