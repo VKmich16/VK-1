@@ -11,11 +11,12 @@
 | --- | --- | --- | --- |
 | 🪟 **Windows** | **v3** | PowerShell 5.1 + 内嵌 C# | 见下文「Windows 版」 |
 | 🍎 **macOS** | **v1.4.3** | Swift + AppKit | 见下文「macOS 版」 |
+| 🌐 **DSH 网页插件** · **本仓库** | **v1.0.0** | DSH bundle（JS） | 见 [`dsh-plugin/`](dsh-plugin)：平板余额 · 四表情 · 米盆充值 · 铁盆 · 右键菜单 |
 | 🌐 **DSH 网页插件** · [@YCTS-otree](https://github.com/YCTS-otree) | 社区维护 | DSH bundle（JS） | 把 D-16BVM 移植进 DSH，支持与其它余额插件一键互切 |
 | 🌐 **DSH 网页插件** · [@TsukiKenga](https://github.com/TsukiKenga) | 社区维护 | DSH bundle（JS） | 五角色可切换 · 扣费步长可配 · 6 路音效各自调节 |
 | 🌐 **独立网页嵌入** | **v0.1.1** | 普通网页 JS + 可选 Python 余额服务 | 不依赖 DSH，可放进自己的网页，见下文「网页嵌入」 |
 
-Windows 版与 macOS 版**互不依赖**，各自独立运行；都只访问 DeepSeek 官方接口，不联网上传任何数据。网页插件版是第三方移植，见下。
+Windows 版与 macOS 版**互不依赖**，各自独立运行；都只访问 DeepSeek 官方接口，不联网上传任何数据。`dsh-plugin/` 是本仓库自带的 DSH 移植，另两版网页插件是第三方移植，见下。
 
 ---
 
@@ -260,10 +261,25 @@ macOS 版基于本仓库中的 Windows 原版移植，感谢原作者。原版�
 
 ---
 
-## 🌐 DSH 网页插件版（社区维护）
+## 🌐 DSH 网页插件版
 
-本仓库的 `大肥鱼桌宠改_D-16BVM` 被**多位社区成员各自**移植成了
-**DSH（DeepSeek Harness）网页插件**，作为 DSH 的一个 bundle 运行。两版独立维护、各自演进，选一个用即可：
+### 本仓库自带：[`dsh-plugin/`](dsh-plugin)
+
+把这个 Windows 版搬进 DSH 网页界面的一个 bundle：角色待在页面左下角，平板显示余额，扣费红闪受击、充值掉米盆、四表情与铁盆玩法都在。
+
+```powershell
+dsh plugin --profile desktop add link:<本仓库路径>\dsh-plugin
+# 从 GitHub 装（仓库根不是包，要 path: 指到子目录；PowerShell 里 # 会被当注释，整条加引号）
+dsh plugin --profile desktop add "github:VKmich16/VK-1#path:/dsh-plugin"
+```
+
+⚠️ **别把仓库根目录当插件装**：根目录没有 `package.json`，`dsh plugin add` 会装出一个占位包 `VK-1@0.0.0`，随后报「这个包没有声明组合包，不能作为插件管理」并回滚。插件包在 `dsh-plugin/` 子目录里。
+
+细节（余额来源、装完为什么要重启、实现要点）见 [`dsh-plugin/README.md`](dsh-plugin/README.md)。
+
+### 社区移植版（第三方维护）
+
+本仓库的 `大肥鱼桌宠改_D-16BVM` 也被**多位社区成员各自**移植成了 **DSH 网页插件**，作为 DSH 的一个 bundle 运行。两版独立维护、各自演进，选一个用即可：
 
 | 移植者 | 在哪 | 这版的特色 |
 | --- | --- | --- |
@@ -276,7 +292,7 @@ macOS 版基于本仓库中的 Windows 原版移植，感谢原作者。原版�
 ⚠️ **形态差异**：网页插件没有原生置顶窗口、托盘和**屏幕角吸附**（只能吸附窗口角）；
 透明像素点击穿透仍然保留。
 
-各版本由各自的作者维护，不属于本仓库内容 —— 使用问题和建议请到对应仓库反馈。
+社区版由各自的作者维护，不属于本仓库内容 —— 使用问题和建议请到对应仓库反馈。
 
 ## 贡献者
 

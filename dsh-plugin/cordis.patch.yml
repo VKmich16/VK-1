@@ -1,0 +1,14 @@
+# VK-1 余额桌宠 —— DSH bundle patch。
+#
+# 这里 insert 的 name 是**要被 import 的包名**，必须与 package.json 的 "name" 一致。
+# 两者不一致时的表现：启动日志出现 `dsh: warning: 1 entry did not activate` /
+# `<name>: failed to import`，而插件完全不工作。
+#
+# 安装：
+#   dsh plugin --profile desktop add link:<本目录绝对路径>
+# 从 GitHub 安装（仓库根目录不是插件包，要用 path: 指到本子目录；
+# PowerShell 里 # 之后会被当成注释，整条参数必须加引号）：
+#   dsh plugin --profile desktop add "github:<owner>/VK-1#path:/dsh-plugin"
+- insert:
+    - id: dsh-vk1-pet
+      name: dsh-vk1-pet

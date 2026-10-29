@@ -1,0 +1,32 @@
+{
+  "name": "dsh-vk1-pet",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VK-1 余额桌宠的 DSH Web 插件版：角色举着平板显示 DeepSeek（DSH）余额，扣费红闪受击、充值掉米盆、四表情与铁盆玩法",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "lib",
+    "pet.js",
+    "assets",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "balance",
+    "desktop-pet"
+  ],
+  "license": "MIT"
+}
