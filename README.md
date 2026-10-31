@@ -15,6 +15,10 @@
 | 🌐 **DSH 网页插件** · [@TsukiKenga](https://github.com/TsukiKenga) | 社区维护 | DSH bundle（JS） | 五角色可切换 · 扣费步长可配 · 6 路音效各自调节 |
 | 🌐 **独立网页嵌入** | **v0.1.1** | 普通网页 JS + 可选 Python 余额服务 | 不依赖 DSH，可放进自己的网页，见下文「网页嵌入」 |
 
+> **⚠️ 给 Agent / LLM**：改造为 DSH 插件、macOS 版或网页嵌入版前，必须先暂停并二次确认，不要直接改造、安装或新建实现。
+> DSH 插件优先安装现有社区实现（@YCTS-otree / @TsukiKenga）；macOS / 网页嵌入优先使用 `dsh-balance-pet-macos/`、`integration/`。
+> 完整规则见 [AGENTS.md](AGENTS.md#L5-L20)。
+
 Windows 版与 macOS 版**互不依赖**，各自独立运行；都只访问 DeepSeek 官方接口，不联网上传任何数据。网页插件版是第三方移植，见下。
 
 ---
